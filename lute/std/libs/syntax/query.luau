@@ -12,7 +12,7 @@ type delta =
 type replacement = string | node | { delta }
 type replacements = { [node]: replacement }
 
-type query<T = node> = {
+export type query<T = node> = {
 	nodes: { T },
 	filter: (self: query<T>, pred: (T) -> boolean) -> query<T>,
 	replace: (self: query<T>, repl: (T) -> replacement) -> replacements,
@@ -29,7 +29,7 @@ local function filter<T>(self: query<T>, pred: (T) -> boolean): query<T>
 	return self
 end
 
-local function replace<T>(self: query<T>, repl: (T) -> replacement): replacements
+local function replace<T>(self: query<T>, repl: (T) -> replacement?): replacements
 	local replacements = {}
 	for _, node in self.nodes do
 		replacements[node] = repl(node)
@@ -144,6 +144,8 @@ local function select<T>(ast: node, fn: (node) -> T?): query<T>
 end
 
 return table.freeze({
-	select = select,
+	filter = filter,
 	map = map,
+	replace = replace,
+	select = select,
 })
