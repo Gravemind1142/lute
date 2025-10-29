@@ -36,6 +36,7 @@ export type Token<Kind = string> = {
 	position: Position,
 	text: Kind,
 	trailingtrivia: { Trivia },
+	kind: "token",
 }
 
 export type Eof = Token<""> & { tag: "eof" }
@@ -43,11 +44,14 @@ export type Eof = Token<""> & { tag: "eof" }
 export type Pair<T, Separator> = { node: T, separator: Token<Separator>? }
 export type Punctuated<T, Separator = ","> = { Pair<T, Separator> }
 
+export type NodeKind = "local" | "expr" | "stat" | "type" | "typepack" | "token"
+
 export type AstLocal = {
 	name: Token<string>,
 	colon: Token<":">?,
 	annotation: AstType?,
 	shadows: AstLocal?,
+	kind: "local",
 }
 
 export type AstExprGroup = {
@@ -55,18 +59,20 @@ export type AstExprGroup = {
 	openparens: Token<"(">,
 	expression: AstExpr,
 	closeparens: Token<")">,
+	kind: "expr",
 }
 
-export type AstExprConstantNil = Token<"nil"> & { tag: "nil" }
+export type AstExprConstantNil = Token<"nil"> & { tag: "nil", kind: "expr" }
 
-export type AstExprConstantBool = Token<"true" | "false"> & { tag: "boolean", value: boolean }
+export type AstExprConstantBool = Token<"true" | "false"> & { tag: "boolean", value: boolean, kind: "expr" }
 
-export type AstExprConstantNumber = Token<string> & { tag: "number", value: number }
+export type AstExprConstantNumber = Token<string> & { tag: "number", value: number, kind: "expr" }
 
 export type AstExprConstantString = Token<string> & {
 	tag: "string",
 	quotestyle: "single" | "double" | "block" | "interp",
 	blockdepth: number,
+	kind: "expr",
 }
 
 export type AstExprLocal = {
@@ -74,14 +80,16 @@ export type AstExprLocal = {
 	token: Token<string>,
 	["local"]: AstLocal,
 	upvalue: boolean,
+	kind: "expr",
 }
 
 export type AstExprGlobal = {
 	tag: "global",
 	name: Token,
+	kind: "expr",
 }
 
-export type AstExprVarargs = Token<"..."> & { tag: "vararg" }
+export type AstExprVarargs = Token<"..."> & { tag: "vararg", kind: "expr" }
 
 export type AstExprCall = {
 	tag: "call",
@@ -91,6 +99,7 @@ export type AstExprCall = {
 	closeparens: Token<")">?,
 	self: boolean,
 	argLocation: Location,
+	kind: "expr",
 }
 
 export type AstExprIndexName = {
@@ -99,6 +108,7 @@ export type AstExprIndexName = {
 	accessor: Token<"." | ":">,
 	index: Token<string>,
 	indexlocation: Location,
+	kind: "expr",
 }
 
 export type AstExprIndexExpr = {
@@ -107,6 +117,7 @@ export type AstExprIndexExpr = {
 	openbrackets: Token<"[">,
 	index: AstExpr,
 	closebrackets: Token<"]">,
+	kind: "expr",
 }
 
 export type AstFunctionBody = {
@@ -132,16 +143,18 @@ export type AstExprAnonymousFunction = {
 	attributes: { AstAttribute },
 	functionkeyword: Token<"function">,
 	body: AstFunctionBody,
+	kind: "expr",
 }
 
 export type AstExprTableItem =
-	| { kind: "list", value: AstExpr, separator: Token<"," | ";">? }
+	| { kind: "list", value: AstExpr, separator: Token<"," | ";">?, kind: "expr" }
 	| {
 		kind: "record",
 		key: Token<string>,
 		equals: Token<"=">,
 		value: AstExpr,
 		separator: Token<"," | ";">?,
+		kind: "expr",
 	}
 	| {
 		kind: "general",
@@ -151,6 +164,7 @@ export type AstExprTableItem =
 		equals: Token<"=">,
 		value: AstExpr,
 		separator: Token<"," | ";">?,
+		kind: "expr",
 	}
 
 export type AstExprTable = {
@@ -158,12 +172,14 @@ export type AstExprTable = {
 	openbrace: Token<"{">,
 	entries: { AstExprTableItem },
 	closebrace: Token<"}">,
+	kind: "expr",
 }
 
 export type AstExprUnary = {
 	tag: "unary",
 	operator: Token<"not" | "-" | "#">,
 	operand: AstExpr,
+	kind: "expr",
 }
 
 export type AstExprBinary = {
@@ -171,12 +187,14 @@ export type AstExprBinary = {
 	lhsoperand: AstExpr,
 	operator: Token, -- TODO: enforce token type
 	rhsoperand: AstExpr,
+	kind: "expr",
 }
 
 export type AstExprInterpString = {
 	tag: "interpolatedstring",
 	strings: { Token<string> },
 	expressions: { AstExpr },
+	kind: "expr",
 }
 
 export type AstExprTypeAssertion = {
@@ -184,6 +202,7 @@ export type AstExprTypeAssertion = {
 	operand: AstExpr,
 	operator: Token<"::">,
 	annotation: AstType,
+	kind: "expr",
 }
 
 export type AstExprIfElseIfs = {
@@ -191,6 +210,7 @@ export type AstExprIfElseIfs = {
 	condition: AstExpr,
 	thenkeyword: Token<"then">,
 	consequent: AstExpr,
+	kind: "expr",
 }
 
 export type AstExprIfElse = {
@@ -202,6 +222,7 @@ export type AstExprIfElse = {
 	elseifs: { AstExprIfElseIfs },
 	elsekeyword: Token<"else">,
 	antecedent: AstExpr,
+	kind: "expr",
 }
 
 export type AstExpr =
@@ -227,6 +248,7 @@ export type AstExpr =
 export type AstStatBlock = {
 	tag: "block",
 	statements: { AstStat },
+	kind: "stat",
 }
 
 export type AstStatElseIf = {
@@ -234,6 +256,7 @@ export type AstStatElseIf = {
 	condition: AstExpr,
 	thenkeyword: Token<"then">,
 	consequent: AstStatBlock,
+	kind: "stat",
 }
 
 export type AstStatIf = {
@@ -246,6 +269,7 @@ export type AstStatIf = {
 	elsekeyword: Token<"else">?, -- TODO: this could be elseif!
 	antecedent: AstStatBlock?,
 	endkeyword: Token<"end">,
+	kind: "stat",
 }
 
 export type AstStatWhile = {
@@ -255,6 +279,7 @@ export type AstStatWhile = {
 	dokeyword: Token<"do">,
 	body: AstStatBlock,
 	endkeyword: Token<"end">,
+	kind: "stat",
 }
 
 export type AstStatRepeat = {
@@ -263,21 +288,24 @@ export type AstStatRepeat = {
 	body: AstStatBlock,
 	untilKeyword: Token<"until">,
 	condition: AstExpr,
+	kind: "stat",
 }
 
-export type AstStatBreak = Token<"break"> & { tag: "break" }
+export type AstStatBreak = Token<"break"> & { tag: "break", kind: "stat" }
 
-export type AstStatContinue = Token<"continue"> & { tag: "continue" }
+export type AstStatContinue = Token<"continue"> & { tag: "continue", kind: "stat" }
 
 export type AstStatReturn = {
 	tag: "return",
 	returnkeyword: Token<"return">,
 	expressions: Punctuated<AstExpr>,
+	kind: "stat",
 }
 
 export type AstStatExpr = {
 	tag: "expression",
 	expression: AstExpr,
+	kind: "stat",
 }
 
 export type AstStatLocal = {
@@ -286,6 +314,7 @@ export type AstStatLocal = {
 	variables: Punctuated<AstLocal>,
 	equals: Token<"=">?,
 	values: Punctuated<AstExpr>,
+	kind: "stat",
 }
 
 export type AstStatFor = {
@@ -301,6 +330,7 @@ export type AstStatFor = {
 	dokeyword: Token<"do">,
 	body: AstStatBlock,
 	endkeyword: Token<"end">,
+	kind: "stat",
 }
 
 export type AstStatForIn = {
@@ -312,6 +342,7 @@ export type AstStatForIn = {
 	dokeyword: Token<"do">,
 	body: AstStatBlock,
 	endkeyword: Token<"end">,
+	kind: "stat",
 }
 
 export type AstStatAssign = {
@@ -319,6 +350,7 @@ export type AstStatAssign = {
 	variables: Punctuated<AstExpr>,
 	equals: Token<"=">,
 	values: Punctuated<AstExpr>,
+	kind: "stat",
 }
 
 export type AstStatCompoundAssign = {
@@ -326,6 +358,7 @@ export type AstStatCompoundAssign = {
 	variable: AstExpr,
 	operand: Token, -- TODO: enforce token type,
 	value: AstExpr,
+	kind: "stat",
 }
 
 export type AstAttribute = Token<"@checked" | "@native" | "@deprecated"> & { tag: "attribute" }
@@ -336,6 +369,7 @@ export type AstStatFunction = {
 	functionkeyword: Token<"function">,
 	name: AstExpr,
 	body: AstFunctionBody,
+	kind: "stat",
 }
 
 export type AstStatLocalFunction = {
@@ -345,6 +379,7 @@ export type AstStatLocalFunction = {
 	functionkeyword: Token<"function">,
 	name: AstLocal,
 	body: AstFunctionBody,
+	kind: "stat",
 }
 
 export type AstStatTypeAlias = {
@@ -358,6 +393,7 @@ export type AstStatTypeAlias = {
 	closegenerics: Token<">">?,
 	equals: Token<"=">,
 	type: AstType,
+	kind: "stat",
 }
 
 export type AstStatTypeFunction = {
@@ -367,6 +403,7 @@ export type AstStatTypeFunction = {
 	functionkeyword: Token<"function">,
 	name: Token,
 	body: AstFunctionBody,
+	kind: "stat",
 }
 
 export type AstStat =
@@ -393,6 +430,7 @@ export type AstGenericType = {
 	name: Token<string>,
 	equals: Token<"=">?,
 	default: AstType?,
+	kind: "type",
 }
 
 export type AstGenericTypePack = {
@@ -401,6 +439,7 @@ export type AstGenericTypePack = {
 	ellipsis: Token<"...">,
 	equals: Token<"=">?,
 	default: AstTypePack?,
+	kind: "typepack",
 }
 
 export type AstTypeReference = {
@@ -411,16 +450,19 @@ export type AstTypeReference = {
 	openparameters: Token<"<">?,
 	parameters: Punctuated<AstType | AstTypePack>?,
 	closeparameters: Token<">">?,
+	kind: "type",
 }
 
 export type AstTypeSingletonBool = Token<"true" | "false"> & {
 	tag: "boolean",
 	value: boolean,
+	kind: "type",
 }
 
 export type AstTypeSingletonString = Token<string> & {
 	tag: "string",
 	quotestyle: "single" | "double",
+	kind: "type",
 }
 
 export type AstTypeTypeof = {
@@ -429,6 +471,7 @@ export type AstTypeTypeof = {
 	openparens: Token<"(">,
 	expression: AstExpr,
 	closeparens: Token<")">,
+	kind: "type",
 }
 
 export type AstTypeGroup = {
@@ -436,21 +479,24 @@ export type AstTypeGroup = {
 	openparens: Token<"(">,
 	type: AstType,
 	closeparens: Token<">">,
+	kind: "type",
 }
 
-export type AstTypeOptional = Token<"?"> & { tag: "optional" }
+export type AstTypeOptional = Token<"?"> & { tag: "optional", kind: "type" }
 
 export type AstTypeUnion = {
 	tag: "union",
 	leading: Token<"|">?,
 	-- Separator may be nil for AstTypeOptional
 	types: Punctuated<AstType, "|">,
+	kind: "type",
 }
 
 export type AstTypeIntersection = {
 	tag: "intersection",
 	leading: Token<"&">?,
 	types: Punctuated<AstType, "&">,
+	kind: "type",
 }
 
 export type AstTypeArray = {
@@ -459,6 +505,7 @@ export type AstTypeArray = {
 	access: Token<"read" | "write">?,
 	type: AstType,
 	closebrace: Token<"}">,
+	kind: "type",
 }
 
 export type AstTypeTableItem =
@@ -497,6 +544,7 @@ export type AstTypeTable = {
 	openbrace: Token<"{">,
 	entries: { AstTypeTableItem },
 	closebrace: Token<"}">,
+	kind: "type",
 }
 
 export type AstTypeFunctionParameter = {
@@ -517,6 +565,7 @@ export type AstTypeFunction = {
 	closeparens: Token<")">,
 	returnarrow: Token<"->">,
 	returntypes: AstTypePack,
+	kind: "type",
 }
 
 export type AstType =
@@ -538,12 +587,14 @@ export type AstTypePackExplicit = {
 	types: Punctuated<AstType>,
 	tailtype: AstTypePack?,
 	closeparens: Token<")">?,
+	kind: "typepack",
 }
 
 export type AstTypePackGeneric = {
 	tag: "generic",
 	name: Token,
 	ellipsis: Token<"...">,
+	kind: "typepack",
 }
 
 export type AstTypePackVariadic = {
@@ -551,9 +602,12 @@ export type AstTypePackVariadic = {
 	--- May be nil when present as the vararg annotation in a function body
 	ellipsis: Token<"...">?,
 	type: AstType,
+	kind: "typepack",
 }
 
 export type AstTypePack = AstTypePackExplicit | AstTypePackGeneric | AstTypePackVariadic
+
+export type AstNode = AstLocal | AstExpr | AstExprTableItem | AstStat | AstType | AstTypePack | Token
 
 export type ParseResult = {
 	root: AstStatBlock,
