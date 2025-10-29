@@ -120,6 +120,7 @@ export type AstExprIndexExpr = {
 	kind: "expr",
 }
 
+-- I don't like that we have this type; a lot of its data should live in the parents, which should then have `AstStatBlock` as its body
 export type AstFunctionBody = {
 	opengenerics: Token<"<">?,
 	generics: Punctuated<AstGenericType>?,
@@ -147,24 +148,22 @@ export type AstExprAnonymousFunction = {
 }
 
 export type AstExprTableItem =
-	| { kind: "list", value: AstExpr, separator: Token<"," | ";">?, kind: "expr" }
+	| { itemkind: "list", value: AstExpr, separator: Token<"," | ";">? }
 	| {
-		kind: "record",
+		itemkind: "record",
 		key: Token<string>,
 		equals: Token<"=">,
 		value: AstExpr,
 		separator: Token<"," | ";">?,
-		kind: "expr",
 	}
 	| {
-		kind: "general",
+		itemkind: "general",
 		indexeropen: Token<"[">,
 		key: AstExpr,
 		indexerclose: Token<"]">,
 		equals: Token<"=">,
 		value: AstExpr,
 		separator: Token<"," | ";">?,
-		kind: "expr",
 	}
 
 export type AstExprTable = {
@@ -210,7 +209,6 @@ export type AstExprIfElseIfs = {
 	condition: AstExpr,
 	thenkeyword: Token<"then">,
 	consequent: AstExpr,
-	kind: "expr",
 }
 
 export type AstExprIfElse = {
@@ -256,7 +254,6 @@ export type AstStatElseIf = {
 	condition: AstExpr,
 	thenkeyword: Token<"then">,
 	consequent: AstStatBlock,
-	kind: "stat",
 }
 
 export type AstStatIf = {
@@ -607,7 +604,7 @@ export type AstTypePackVariadic = {
 
 export type AstTypePack = AstTypePackExplicit | AstTypePackGeneric | AstTypePackVariadic
 
-export type AstNode = AstLocal | AstExpr | AstExprTableItem | AstStat | AstType | AstTypePack | Token
+export type AstNode = AstLocal | AstExpr | AstStat | AstType | AstTypePack | Token
 
 export type ParseResult = {
 	root: AstStatBlock,
