@@ -1,5 +1,8 @@
 local finder = require("@self/finder")
-
+local path = require("@std/path")
+local luau = require("@std/luau")
+local test = require("@std/test")
+local table = require("@std/table")
 local function printHelp()
 	print([[
 Usage: lute test [OPTIONS] [PATHS...]
@@ -31,22 +34,91 @@ EXAMPLES:
 ]])
 end
 
+--[[
+ Any of the tests we load will use the instance of std/test initialized in this module (cli/commands/test/init.luau)
+ Tests that run via lute test don't need to explicitly call test.run, so we'll pass an empty run function so that we don't
+ execute any tests, while giving us time to remove unecessary run() calls (doing this because this doesn't support running tests just yet)
+ The reason we have to inject a custom require here is because each `loadbypath` on a test file will return the "@std/test" instance provided by
+ the EmbeddedStdVFS. However, running `lute test` from the root of the lute repo will use a distinct @std/test instance, which is provided by the .luaurc when running
+ this file, which means the test environment won't get populated. The consequence of this is that `lute test` will work perfectly everywhere except inside of
+ the lute repo, which sucks. Intercepting @std/test requires works correctly and ensures that the correct @std/test instance gets populated
+]]
+--
+local function lutetestrequire(path: string)
+	if path == "@std/test" then
+		return table.freeze({ case = test.case, suite = test.suite, run = function() end })
+	end
+	return require(path) :: any
+end
+
+-- todo: should this be a std/table method as well? e.g. table.clonewith(t, inject) returns a copy of t overriden with the values in inject?
+local function extendglobals(inject: { [unknown]: unknown }): { [unknown]: unknown }
+	local g = table.clone(_G)
+	for k, v in pairs(inject) do
+		g[k] = v
+	end
+	return g
+end
+
+local function loadtests(testfiles: { path.path })
+	local fenv = extendglobals({ ["require"] = lutetestrequire })
+	-- Load all test files first
+	for _, p in testfiles do
+		local filepath = path.format(p)
+		local success, err = pcall(luau.loadbypath, filepath, fenv)
+
+		if not success then
+			print(`Error loading {filepath}: {err}`)
+		end
+	end
+end
+
+local function listtests()
+	-- Get all registered tests using the shared test instance
+	local registered = test._registered()
+	local totalTests = #registered.anonymous
+
+	for _, suite in registered.suites do
+		totalTests += #suite.cases
+	end
+
+	-- List anonymous test cases first
+	print("Anonymous:")
+	for _, tc in registered.anonymous do
+		print(`\t{tc.name}`)
+	end
+
+	-- List test suites and their cases with indentation
+	for _, suite in registered.suites do
+		print(suite.name)
+		for _, tc in suite.cases do
+			print(`{suite.name}{tc.name}`)
+		end
+	end
+end
+
 local function main(...: string)
 	local args = { ... }
+	local testPaths = {}
+	local isListMode = false
 
-	-- Check for help flag
+	-- Parse arguments
 	for _, arg in args do
 		if arg == "-h" or arg == "--help" then
 			printHelp()
 			return
+		elseif arg == "--list" then
+			isListMode = true
+		else
+			table.insert(testPaths, arg)
 		end
 	end
+	local searchpath = if #testPaths > 0 then testPaths else { "./tests" }
+	loadtests(finder.findtestfiles(searchpath))
 
-	local searchpath = if #args > 0 then args else { "./tests" }
-
-	local files = finder.findtestfiles(searchpath)
-
-	print(`Found {#files} test files`)
+	if isListMode then
+		listtests()
+	end
 end
 
 main(...)
